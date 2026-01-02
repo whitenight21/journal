@@ -12,7 +12,20 @@
             padding: 20px;
             color: #333;
         }
-        h1 { text-align: center; font-size: 28px; margin-bottom: 30px; }
+        h1 { text-align: center; font-size: 28px; margin-bottom: 20px; }
+        #controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #toggleView {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
         #entries { max-width: 800px; margin: 0 auto; }
         .entry {
             background-color: white;
@@ -21,16 +34,18 @@
             margin-bottom: 24px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
+        .entry-header {
+            margin-bottom: 12px;
+        }
         .entry-date {
             font-size: 17px;
             color: #007aff;
             font-weight: 600;
-            margin-bottom: 8px;
         }
         .entry-title {
             font-size: 24px;
             font-weight: bold;
-            margin: 12px 0;
+            margin: 8px 0;
             padding: 8px 0;
             border: none;
             background: transparent;
@@ -39,17 +54,75 @@
         .entry-title:focus { outline: none; border-bottom: 2px solid #007aff; }
         .entry-gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Smaller thumbnails */
+            gap: 10px;
             margin-top: 16px;
         }
         .entry-gallery img {
             width: 100%;
-            height: 180px;
+            height: 120px; /* Fixed smaller height */
             object-fit: cover;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
         }
+        .entry-gallery img:hover {
+            transform: scale(1.05);
+        }
+        /* Compact mode - hide gallery */
+        .compact .entry-gallery { display: none; }
+        .compact .entry { padding: 16px; }
+
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #lightbox img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        #lightbox-nav {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        #prevBtn, #nextBtn {
+            pointer-events: all;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            font-size: 40px;
+            padding: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+            margin: 0 10px;
+        }
+        #closeLightbox {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            font-size: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
         #addEntry {
             background-color: #007aff;
             color: white;
@@ -70,21 +143,22 @@
             padding: 24px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
-        input, button {
+        input, button, .date-group {
             width: 100%;
             padding: 12px;
             margin-bottom: 16px;
             font-size: 17px;
             border-radius: 12px;
             border: 1px solid #ddd;
+            box-sizing: border-box;
         }
-        button {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            cursor: pointer;
+        .date-group { display: flex; gap: 10px; padding: 0; border: none; }
+        .date-group input { flex: 1; margin-bottom: 0; }
+        .date-group button {
+            width: auto; padding: 12px 20px; background: #f0f0f0; color: #007aff;
         }
-        #photos { padding: 20px; border: 2px dashed #ccc; text-align: center; background: #fafafa; }
+        button { background-color: #007aff; color: white; border: none; cursor: pointer; }
+        #photos { padding: 20px; border: 2px dashed #ccc; text-align: center; background: #fafafa; cursor: pointer; }
         .status { text-align: center; margin: 10px 0; font-size: 14px; }
         .error { color: #ff3b30; }
         .success { color: #34c759; }
@@ -93,11 +167,15 @@
 <body>
     <h1>My Journal</h1>
 
+    <div id="controls">
+        <button id="toggleView">Compact View</button>
+    </div>
+
     <div id="configForm">
         <h2>GitHub Setup (one-time)</h2>
-        <input id="owner" placeholder="GitHub username" autocomplete="off">
-        <input id="repo" placeholder="Repository name" autocomplete="off">
-        <input id="token" placeholder="Personal Access Token (repo scope)" type="password" autocomplete="off">
+        <input id="owner" placeholder="GitHub username">
+        <input id="repo" placeholder="Repository name">
+        <input id="token" placeholder="Personal Access Token (repo scope)" type="password">
         <button id="saveConfig">Save Config & Load Journal</button>
         <div class="status" id="configStatus"></div>
     </div>
@@ -108,22 +186,39 @@
 
     <div id="form" style="display:none;">
         <input id="title" placeholder="Entry title (optional)">
+
+        <div class="date-group">
+            <input type="date" id="eventDate">
+            <button type="button" id="todayBtn">Today</button>
+        </div>
+
         <div id="photos">
             <p>Tap to add photos</p>
             <input type="file" id="photoInput" multiple accept="image/*" style="display:none;">
         </div>
+
         <div class="status" id="status"></div>
         <button id="save" disabled>Save Entry</button>
     </div>
 
+    <!-- Lightbox -->
+    <div id="lightbox">
+        <button id="closeLightbox">×</button>
+        <img id="lightboxImg" src="">
+        <div id="lightbox-nav">
+            <button id="prevBtn">‹</button>
+            <button id="nextBtn">›</button>
+        </div>
+    </div>
+
     <script>
-        // Reliable CORS proxy (works well in 2026)
         const PROXY = 'https://corsproxy.io/?';
         let owner, repo, token, entries = [];
         const dataPath = 'journal.json';
         const photosFolder = 'photos/';
+        let currentPhotos = [];
+        let currentIndex = 0;
 
-        // Direct raw URL for images (no proxy needed, GitHub allows CORS for GET)
         function rawBase(path) {
             return `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
         }
@@ -135,22 +230,12 @@
                 document.getElementById('configForm').style.display = 'none';
                 document.getElementById('entries').style.display = 'block';
                 document.getElementById('addEntry').style.display = 'block';
+                document.getElementById('controls').style.display = 'block';
                 fetchEntries();
             }
         }
 
-        document.getElementById('saveConfig').addEventListener('click', () => {
-            owner = document.getElementById('owner').value.trim();
-            repo = document.getElementById('repo').value.trim();
-            token = document.getElementById('token').value.trim();
-            if (!owner || !repo || !token) {
-                document.getElementById('configStatus').textContent = 'Please fill all fields';
-                document.getElementById('configStatus').className = 'status error';
-                return;
-            }
-            localStorage.setItem('journalConfig', JSON.stringify({owner, repo, token}));
-            loadConfig();
-        });
+        // ... [githubApi, fetchEntries, saveEntries, uploadPhoto functions remain the same as before] ...
 
         async function githubApi(method, path, body = null) {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
@@ -176,14 +261,14 @@
             try {
                 const file = await githubApi('GET', dataPath);
                 entries = JSON.parse(atob(file.content));
+                entries = entries.map(entry => ({
+                    ...entry,
+                    eventDate: entry.eventDate || entry.date || new Date().toISOString()
+                }));
                 displayEntries();
             } catch (e) {
-                if (e.message.includes('404')) {
-                    entries = [];
-                } else {
-                    console.error(e);
-                    alert('Failed to load journal: ' + e.message);
-                }
+                if (e.message.includes('404')) entries = [];
+                else alert('Failed to load journal: ' + e.message);
                 displayEntries();
             }
         }
@@ -211,39 +296,98 @@
             return path;
         }
 
-        function displayEntries() {
-            const container = document.getElementById('entries');
-            container.innerHTML = '';
-            [...entries].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach((entry, idx) => {
-                const div = document.createElement('div');
-                div.className = 'entry';
-                div.innerHTML = `
-                    <div class="entry-date">${new Date(entry.date).toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</div>
-                    <div class="entry-title" contenteditable="true">${entry.title || 'Untitled'}</div>
-                    <div class="entry-gallery"></div>
-                `;
-                div.querySelector('.entry-title').addEventListener('blur', async () => {
-                    entries[idx].title = div.querySelector('.entry-title').textContent.trim();
-                    await saveEntries();
-                });
-                const gallery = div.querySelector('.entry-gallery');
-                entry.photos.forEach(p => {
-                    const img = document.createElement('img');
-                    img.src = rawBase(p);
-                    img.alt = 'Journal photo';
-                    img.onerror = () => { img.src = ''; img.alt = 'Failed to load image'; }; // fallback
-                    gallery.appendChild(img);
-                });
-                container.appendChild(div);
+        function formatEventDate(isoString) {
+            return new Date(isoString).toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
             });
         }
 
+        function displayEntries() {
+            const container = document.getElementById('entries');
+            container.innerHTML = '';
+            [...entries]
+                .sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate))
+                .forEach((entry, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'entry';
+                    div.innerHTML = `
+                        <div class="entry-header">
+                            <div class="entry-date">${formatEventDate(entry.eventDate)}</div>
+                            <div class="entry-title" contenteditable="true">${entry.title || 'Untitled'}</div>
+                        </div>
+                        <div class="entry-gallery"></div>
+                    `;
+                    div.querySelector('.entry-title').addEventListener('blur', async () => {
+                        entries[idx].title = div.querySelector('.entry-title').textContent.trim();
+                        await saveEntries();
+                    });
+                    const gallery = div.querySelector('.entry-gallery');
+                    entry.photos.forEach((p, photoIdx) => {
+                        const img = document.createElement('img');
+                        img.src = rawBase(p);
+                        img.alt = 'Journal photo';
+                        img.onclick = () => openLightbox(entry.photos, photoIdx);
+                        gallery.appendChild(img);
+                    });
+                    container.appendChild(div);
+                });
+        }
+
+        // Lightbox functions
+        function openLightbox(photos, startIndex) {
+            currentPhotos = photos;
+            currentIndex = startIndex;
+            document.getElementById('lightboxImg').src = rawBase(photos[startIndex]);
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        document.getElementById('closeLightbox').onclick = () => {
+            document.getElementById('lightbox').style.display = 'none';
+        };
+
+        document.getElementById('prevBtn').onclick = () => {
+            currentIndex = (currentIndex - 1 + currentPhotos.length) % currentPhotos.length;
+            document.getElementById('lightboxImg').src = rawBase(currentPhotos[currentIndex]);
+        };
+
+        document.getElementById('nextBtn').onclick = () => {
+            currentIndex = (currentIndex + 1) % currentPhotos.length;
+            document.getElementById('lightboxImg').src = rawBase(currentPhotos[currentIndex]);
+        };
+
+        document.getElementById('lightbox').onclick = (e) => {
+            if (e.target === document.getElementById('lightbox')) {
+                document.getElementById('lightbox').style.display = 'none';
+            }
+        };
+
+        // Toggle view
+        document.getElementById('toggleView').addEventListener('click', () => {
+            const entriesDiv = document.getElementById('entries');
+            const button = document.getElementById('toggleView');
+            if (entriesDiv.classList.contains('compact')) {
+                entriesDiv.classList.remove('compact');
+                button.textContent = 'Compact View';
+            } else {
+                entriesDiv.classList.add('compact');
+                button.textContent = 'Gallery View';
+            }
+        });
+
+        // Form logic (same as before)
         document.getElementById('addEntry').addEventListener('click', () => {
             document.getElementById('form').style.display = 'block';
             document.getElementById('addEntry').style.display = 'none';
+            document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
         });
 
-        document.getElementById('photos').addEventListener('click', () => document.getElementById('photoInput').click());
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        document.getElementById('photos').addEventListener('click', () => {
+            document.getElementById('photoInput').click();
+        });
 
         const photoInput = document.getElementById('photoInput');
         const status = document.getElementById('status');
@@ -252,16 +396,18 @@
 
         photoInput.addEventListener('change', () => {
             selectedFiles = Array.from(photoInput.files);
-            if (selectedFiles.length === 0) return;
-            status.textContent = `${selectedFiles.length} photo${selectedFiles.length>1?'s':''} selected`;
+            status.textContent = selectedFiles.length ? 
+                `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''} selected` : '';
             status.className = 'status success';
-            saveBtn.disabled = false;
+            saveBtn.disabled = !selectedFiles.length;
         });
 
         saveBtn.addEventListener('click', async () => {
-            if (selectedFiles.length === 0) return alert('Add at least one photo');
+            if (!selectedFiles.length) return alert('Add at least one photo');
+            const eventDate = document.getElementById('eventDate').value;
+            if (!eventDate) return alert('Please select an event date');
+
             status.textContent = 'Uploading photos...';
-            status.className = 'status';
             try {
                 const photoPaths = [];
                 for (const file of selectedFiles) {
@@ -269,26 +415,30 @@
                     const path = await uploadPhoto(file);
                     photoPaths.push(path);
                 }
+
                 entries.push({
                     date: new Date().toISOString(),
+                    eventDate: new Date(eventDate).toISOString(),
                     title: document.getElementById('title').value.trim() || 'Untitled',
                     photos: photoPaths
                 });
+
                 await saveEntries();
                 displayEntries();
-                // reset form
+
+                // Reset
                 document.getElementById('form').style.display = 'none';
                 document.getElementById('addEntry').style.display = 'block';
                 document.getElementById('title').value = '';
+                document.getElementById('eventDate').value = '';
                 photoInput.value = '';
                 selectedFiles = [];
                 saveBtn.disabled = true;
-                status.textContent = 'Entry saved successfully!';
+                status.textContent = 'Entry saved!';
                 status.className = 'status success';
             } catch (e) {
                 status.textContent = 'Error: ' + e.message;
                 status.className = 'status error';
-                console.error(e);
             }
         });
 
