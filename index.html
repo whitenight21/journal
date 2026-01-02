@@ -3,250 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Journal App</title>
+    <title>My Journal</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8f8f8;
+            background-color: #f5f5f7;
             margin: 0;
             padding: 20px;
             color: #333;
         }
-        #entries {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+        h1 { text-align: center; font-size: 28px; margin-bottom: 30px; }
+        #entries { max-width: 800px; margin: 0 auto; }
         .entry {
             background-color: white;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         .entry-date {
-            font-size: 14px;
-            color: #888;
-            margin-bottom: 10px;
+            font-size: 17px;
+            color: #007aff;
+            font-weight: 600;
+            margin-bottom: 8px;
         }
         .entry-title {
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 15px;
-            cursor: text;
+            margin: 12px 0;
+            padding: 8px 0;
+            border: none;
+            background: transparent;
+            width: 100%;
         }
+        .entry-title:focus { outline: none; border-bottom: 2px solid #007aff; }
         .entry-gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
         }
         .entry-gallery img {
             width: 100%;
-            height: auto;
-            border-radius: 8px;
+            height: 180px;
             object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         #addEntry {
             background-color: #007aff;
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 16px;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 17px;
             cursor: pointer;
             display: block;
-            margin: 20px auto;
+            margin: 40px auto 20px;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
-        #form {
+        #configForm, #form {
             max-width: 800px;
             margin: 20px auto;
             background-color: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
-        #title {
+        input, button {
             width: 100%;
-            padding: 10px;
-            font-size: 18px;
-            margin-bottom: 10px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 17px;
+            border-radius: 12px;
             border: 1px solid #ddd;
-            border-radius: 4px;
         }
-        #photos {
-            margin-bottom: 10px;
-        }
-        #save {
+        button {
             background-color: #007aff;
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
             cursor: pointer;
         }
-        .hidden {
-            display: none;
-        }
+        #photos { padding: 20px; border: 2px dashed #ccc; text-align: center; background: #fafafa; }
+        .status { text-align: center; margin: 10px 0; font-size: 14px; }
+        .error { color: #ff3b30; }
+        .success { color: #34c759; }
     </style>
 </head>
 <body>
-    <div id="entries"></div>
-    <button id="addEntry">Add New Entry</button>
-    <div id="form" class="hidden">
-        <input id="title" placeholder="Enter title (optional)">
-        <input type="file" id="photos" multiple accept="image/*">
-        <button id="save">Save Entry</button>
+    <h1>My Journal</h1>
+
+    <div id="configForm">
+        <h2>GitHub Setup (one-time)</h2>
+        <input id="owner" placeholder="GitHub username" autocomplete="off">
+        <input id="repo" placeholder="Repository name" autocomplete="off">
+        <input id="token" placeholder="Personal Access Token (repo scope)" type="password" autocomplete="off">
+        <button id="saveConfig">Save Config & Load Journal</button>
+        <div class="status" id="configStatus"></div>
+    </div>
+
+    <div id="entries" style="display:none;"></div>
+
+    <button id="addEntry" style="display:none;">+ New Entry</button>
+
+    <div id="form" style="display:none;">
+        <input id="title" placeholder="Entry title (optional)">
+        <div id="photos">
+            <p>Tap to add photos</p>
+            <input type="file" id="photoInput" multiple accept="image/*" style="display:none;">
+        </div>
+        <div class="status" id="status"></div>
+        <button id="save" disabled>Save Entry</button>
     </div>
 
     <script>
-        // Replace these with your actual GitHub details
-        const owner = 'YOUR_GITHUB_USERNAME'; // e.g., 'octocat'
-        const repo = 'YOUR_REPO_NAME'; // e.g., 'journal-app'
-        const token = 'YOUR_PERSONAL_ACCESS_TOKEN'; // Generate a PAT with repo scope at https://github.com/settings/tokens
+        const PROXY = 'https://api.allorigins.win/raw?url=';
+        let owner, repo, token, entries = [];
         const dataPath = 'journal.json';
         const photosFolder = 'photos/';
-        const rawBaseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/`;
+        const rawBase = (path) => `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
 
-        let entries = [];
+        function loadConfig() {
+            const cfg = localStorage.getItem('journalConfig');
+            if (cfg) {
+                ({owner, repo, token} = JSON.parse(cfg));
+                document.getElementById('configForm').style.display = 'none';
+                document.getElementById('entries').style.display = 'block';
+                document.getElementById('addEntry').style.display = 'block';
+                fetchEntries();
+            }
+        }
 
-        // Helper to make GitHub API requests
+        document.getElementById('saveConfig').addEventListener('click', () => {
+            owner = document.getElementById('owner').value.trim();
+            repo = document.getElementById('repo').value.trim();
+            token = document.getElementById('token').value.trim();
+            if (!owner || !repo || !token) {
+                document.getElementById('configStatus').textContent = 'Please fill all fields';
+                document.getElementById('configStatus').className = 'status error';
+                return;
+            }
+            localStorage.setItem('journalConfig', JSON.stringify({owner, repo, token}));
+            loadConfig();
+        });
+
         async function githubApi(method, path, body = null) {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
             const headers = {
-                Authorization: `token ${token}`,
-                Accept: 'application/vnd.github.v3+json'
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
             };
-            const response = await fetch(url, {
+            if (body) headers['Content-Type'] = 'application/json';
+
+            const response = await fetch(PROXY + encodeURIComponent(url), {
                 method,
                 headers,
                 body: body ? JSON.stringify(body) : null
             });
-            if (!response.ok) {
-                throw new Error(`GitHub API error: ${response.statusText}`);
-            }
-            return response.json();
+            if (!response.ok) throw new Error(`GitHub error: ${response.status} ${await response.text()}`);
+            return response.status === 204 ? null : response.json();
         }
 
-        // Fetch the journal.json if exists
         async function fetchEntries() {
             try {
                 const file = await githubApi('GET', dataPath);
                 entries = JSON.parse(atob(file.content));
                 displayEntries();
-            } catch (error) {
-                if (error.message.includes('Not Found')) {
-                    entries = [];
-                    displayEntries();
-                } else {
-                    console.error('Error fetching entries:', error);
-                }
+            } catch (e) {
+                if (e.message.includes('404')) entries = [];
+                else console.error(e);
+                displayEntries();
             }
         }
 
-        // Upload or update journal.json
         async function saveEntries() {
             let sha = null;
             try {
                 const file = await githubApi('GET', dataPath);
                 sha = file.sha;
-            } catch (error) {
-                // File doesn't exist yet, no sha
-            }
-            const content = btoa(JSON.stringify(entries));
-            await githubApi('PUT', dataPath, {
-                message: 'Update journal entries',
-                content,
-                sha
-            });
+            } catch {}
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(entries))));
+            await githubApi('PUT', dataPath, { message: 'Update journal', content, sha });
         }
 
-        // Upload a photo and return its path
         async function uploadPhoto(file) {
-            const timestamp = new Date().getTime();
+            const timestamp = Date.now();
             const filename = `${timestamp}-${file.name.replace(/\s/g, '_')}`;
-            const path = `${photosFolder}${filename}`;
+            const path = photosFolder + filename;
             const reader = new FileReader();
-            return new Promise((resolve, reject) => {
-                reader.onload = async () => {
-                    const content = reader.result.split(',')[1]; // Base64 without prefix
-                    try {
-                        await githubApi('PUT', path, {
-                            message: `Add photo ${filename}`,
-                            content
-                        });
-                        resolve(path);
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
+            const base64 = await new Promise(res => {
+                reader.onload = () => res(reader.result.split(',')[1]);
                 reader.readAsDataURL(file);
             });
+            await githubApi('PUT', path, { message: `Add photo ${filename}`, content: base64 });
+            return path;
         }
 
-        // Display entries, sorted newest first
         function displayEntries() {
             const container = document.getElementById('entries');
             container.innerHTML = '';
-            entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-            entries.forEach((entry, index) => {
+            [...entries].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach((entry, idx) => {
                 const div = document.createElement('div');
                 div.className = 'entry';
                 div.innerHTML = `
-                    <div class="entry-date">${new Date(entry.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                    <span class="entry-title" contenteditable="true">${entry.title || 'Untitled'}</span>
+                    <div class="entry-date">${new Date(entry.date).toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</div>
+                    <div class="entry-title" contenteditable="true">${entry.title || 'Untitled'}</div>
                     <div class="entry-gallery"></div>
                 `;
-                const titleSpan = div.querySelector('.entry-title');
-                titleSpan.addEventListener('blur', async () => {
-                    entries[index].title = titleSpan.textContent.trim();
-                    await saveEntries();
+                div.querySelector('.entry-title').addEventListener('blur', () => {
+                    entries[idx].title = div.querySelector('.entry-title').textContent.trim();
+                    saveEntries();
                 });
                 const gallery = div.querySelector('.entry-gallery');
-                entry.photos.forEach(photoPath => {
+                entry.photos.forEach(p => {
                     const img = document.createElement('img');
-                    img.src = `${rawBaseUrl}${photoPath}`;
+                    img.src = rawBase(p);
                     gallery.appendChild(img);
                 });
                 container.appendChild(div);
             });
         }
 
-        // Event listeners
         document.getElementById('addEntry').addEventListener('click', () => {
-            document.getElementById('form').classList.toggle('hidden');
+            document.getElementById('form').style.display = 'block';
+            document.getElementById('addEntry').style.display = 'none';
         });
 
-        document.getElementById('save').addEventListener('click', async () => {
-            const title = document.getElementById('title').value.trim();
-            const files = document.getElementById('photos').files;
-            if (files.length === 0) {
-                alert('Please add at least one photo.');
-                return;
-            }
-            const photoPaths = [];
-            for (const file of files) {
-                try {
+        document.getElementById('photos').addEventListener('click', () => document.getElementById('photoInput').click());
+
+        const photoInput = document.getElementById('photoInput');
+        const status = document.getElementById('status');
+        const saveBtn = document.getElementById('save');
+        let selectedFiles = [];
+
+        photoInput.addEventListener('change', () => {
+            selectedFiles = Array.from(photoInput.files);
+            if (selectedFiles.length === 0) return;
+            status.textContent = `${selectedFiles.length} photo${selectedFiles.length>1?'s':''} selected`;
+            status.className = 'status success';
+            saveBtn.disabled = false;
+        });
+
+        saveBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return alert('Add at least one photo');
+            status.textContent = 'Uploading...';
+            status.className = 'status';
+            try {
+                const photoPaths = [];
+                for (const file of selectedFiles) {
                     const path = await uploadPhoto(file);
                     photoPaths.push(path);
-                } catch (error) {
-                    console.error('Error uploading photo:', error);
-                    alert('Failed to upload a photo.');
-                    return;
                 }
+                entries.push({
+                    date: new Date().toISOString(),
+                    title: document.getElementById('title').value.trim() || 'Untitled',
+                    photos: photoPaths
+                });
+                await saveEntries();
+                displayEntries();
+                // reset
+                document.getElementById('form').style.display = 'none';
+                document.getElementById('addEntry').style.display = 'block';
+                document.getElementById('title').value = '';
+                photoInput.value = '';
+                selectedFiles = [];
+                saveBtn.disabled = true;
+                status.textContent = 'Saved!';
+                status.className = 'status success';
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+                status.className = 'status error';
+                console.error(e);
             }
-            entries.push({
-                date: new Date().toISOString(),
-                title: title || 'Untitled',
-                photos: photoPaths
-            });
-            await saveEntries();
-            displayEntries();
-            document.getElementById('form').classList.add('hidden');
-            document.getElementById('title').value = '';
-            document.getElementById('photos').value = '';
         });
 
-        // Initial load
-        fetchEntries();
+        loadConfig();
     </script>
 </body>
 </html>
