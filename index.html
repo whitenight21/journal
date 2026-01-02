@@ -117,11 +117,16 @@
     </div>
 
     <script>
-        const PROXY = 'https://api.allorigins.win/raw?url=';
+        // Reliable CORS proxy (works well in 2026)
+        const PROXY = 'https://corsproxy.io/?';
         let owner, repo, token, entries = [];
         const dataPath = 'journal.json';
         const photosFolder = 'photos/';
-        const rawBase = (path) => `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
+
+        // Direct raw URL for images (no proxy needed, GitHub allows CORS for GET)
+        function rawBase(path) {
+            return `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
+        }
 
         function loadConfig() {
             const cfg = localStorage.getItem('journalConfig');
@@ -160,7 +165,10 @@
                 headers,
                 body: body ? JSON.stringify(body) : null
             });
-            if (!response.ok) throw new Error(`GitHub error: ${response.status} ${await response.text()}`);
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`GitHub error ${response.status}: ${text}`);
+            }
             return response.status === 204 ? null : response.json();
         }
 
@@ -170,8 +178,12 @@
                 entries = JSON.parse(atob(file.content));
                 displayEntries();
             } catch (e) {
-                if (e.message.includes('404')) entries = [];
-                else console.error(e);
+                if (e.message.includes('404')) {
+                    entries = [];
+                } else {
+                    console.error(e);
+                    alert('Failed to load journal: ' + e.message);
+                }
                 displayEntries();
             }
         }
@@ -210,14 +222,16 @@
                     <div class="entry-title" contenteditable="true">${entry.title || 'Untitled'}</div>
                     <div class="entry-gallery"></div>
                 `;
-                div.querySelector('.entry-title').addEventListener('blur', () => {
+                div.querySelector('.entry-title').addEventListener('blur', async () => {
                     entries[idx].title = div.querySelector('.entry-title').textContent.trim();
-                    saveEntries();
+                    await saveEntries();
                 });
                 const gallery = div.querySelector('.entry-gallery');
                 entry.photos.forEach(p => {
                     const img = document.createElement('img');
                     img.src = rawBase(p);
+                    img.alt = 'Journal photo';
+                    img.onerror = () => { img.src = ''; img.alt = 'Failed to load image'; }; // fallback
                     gallery.appendChild(img);
                 });
                 container.appendChild(div);
@@ -246,11 +260,12 @@
 
         saveBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0) return alert('Add at least one photo');
-            status.textContent = 'Uploading...';
+            status.textContent = 'Uploading photos...';
             status.className = 'status';
             try {
                 const photoPaths = [];
                 for (const file of selectedFiles) {
+                    status.textContent = `Uploading ${file.name}...`;
                     const path = await uploadPhoto(file);
                     photoPaths.push(path);
                 }
@@ -261,14 +276,14 @@
                 });
                 await saveEntries();
                 displayEntries();
-                // reset
+                // reset form
                 document.getElementById('form').style.display = 'none';
                 document.getElementById('addEntry').style.display = 'block';
                 document.getElementById('title').value = '';
                 photoInput.value = '';
                 selectedFiles = [];
                 saveBtn.disabled = true;
-                status.textContent = 'Saved!';
+                status.textContent = 'Entry saved successfully!';
                 status.className = 'status success';
             } catch (e) {
                 status.textContent = 'Error: ' + e.message;
