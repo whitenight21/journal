@@ -12,21 +12,47 @@
             padding: 20px;
             color: #333;
         }
-        h1 { text-align: center; font-size: 28px; margin-bottom: 20px; }
-        #controls {
+        h1 {
             text-align: center;
-            margin-bottom: 20px;
+            font-size: 32px;
+            margin: 20px 0 15px;
+            font-weight: 600;
         }
-        #toggleView {
+        #header-controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        #addEntry {
             background-color: #007aff;
             color: white;
             border: none;
+            border-radius: 14px;
+            padding: 16px 32px;
+            font-size: 19px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+            margin: 8px 0;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+        #toggleView {
+            background-color: #000000; /* Black */
+            color: white;
+            border: none;
             border-radius: 12px;
-            padding: 10px 20px;
+            padding: 12px 28px;
             font-size: 16px;
             cursor: pointer;
+            display: inline-block;
+            margin: 8px 0;
         }
-        #entries { max-width: 800px; margin: 0 auto; }
+        #toggleView:hover {
+            background-color: #222;
+        }
+        #entries {
+            max-width: 800px;
+            margin: 0 auto;
+        }
         .entry {
             background-color: white;
             border-radius: 16px;
@@ -51,16 +77,19 @@
             background: transparent;
             width: 100%;
         }
-        .entry-title:focus { outline: none; border-bottom: 2px solid #007aff; }
+        .entry-title:focus {
+            outline: none;
+            border-bottom: 2px solid #007aff;
+        }
         .entry-gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Smaller thumbnails */
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 10px;
             margin-top: 16px;
         }
         .entry-gallery img {
             width: 100%;
-            height: 120px; /* Fixed smaller height */
+            height: 120px;
             object-fit: cover;
             border-radius: 10px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
@@ -70,7 +99,6 @@
         .entry-gallery img:hover {
             transform: scale(1.05);
         }
-        /* Compact mode - hide gallery */
         .compact .entry-gallery { display: none; }
         .compact .entry { padding: 16px; }
 
@@ -123,18 +151,6 @@
             cursor: pointer;
         }
 
-        #addEntry {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 14px 24px;
-            font-size: 17px;
-            cursor: pointer;
-            display: block;
-            margin: 40px auto 20px;
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-        }
         #configForm, #form {
             max-width: 800px;
             margin: 20px auto;
@@ -152,13 +168,27 @@
             border: 1px solid #ddd;
             box-sizing: border-box;
         }
-        .date-group { display: flex; gap: 10px; padding: 0; border: none; }
+        .date-group {
+            display: flex;
+            gap: 10px;
+            padding: 0;
+            border: none;
+        }
         .date-group input { flex: 1; margin-bottom: 0; }
         .date-group button {
-            width: auto; padding: 12px 20px; background: #f0f0f0; color: #007aff;
+            width: auto;
+            padding: 12px 20px;
+            background: #f0f0f0;
+            color: #007aff;
         }
         button { background-color: #007aff; color: white; border: none; cursor: pointer; }
-        #photos { padding: 20px; border: 2px dashed #ccc; text-align: center; background: #fafafa; cursor: pointer; }
+        #photos {
+            padding: 20px;
+            border: 2px dashed #ccc;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+        }
         .status { text-align: center; margin: 10px 0; font-size: 14px; }
         .error { color: #ff3b30; }
         .success { color: #34c759; }
@@ -167,7 +197,8 @@
 <body>
     <h1>My Journal</h1>
 
-    <div id="controls">
+    <div id="header-controls">
+        <button id="addEntry">+ New Entry</button><br>
         <button id="toggleView">Compact View</button>
     </div>
 
@@ -181,8 +212,6 @@
     </div>
 
     <div id="entries" style="display:none;"></div>
-
-    <button id="addEntry" style="display:none;">+ New Entry</button>
 
     <div id="form" style="display:none;">
         <input id="title" placeholder="Entry title (optional)">
@@ -229,13 +258,23 @@
                 ({owner, repo, token} = JSON.parse(cfg));
                 document.getElementById('configForm').style.display = 'none';
                 document.getElementById('entries').style.display = 'block';
-                document.getElementById('addEntry').style.display = 'block';
-                document.getElementById('controls').style.display = 'block';
+                document.getElementById('header-controls').style.display = 'block';
                 fetchEntries();
             }
         }
 
-        // ... [githubApi, fetchEntries, saveEntries, uploadPhoto functions remain the same as before] ...
+        document.getElementById('saveConfig').addEventListener('click', () => {
+            owner = document.getElementById('owner').value.trim();
+            repo = document.getElementById('repo').value.trim();
+            token = document.getElementById('token').value.trim();
+            if (!owner || !repo || !token) {
+                document.getElementById('configStatus').textContent = 'Please fill all fields';
+                document.getElementById('configStatus').className = 'status error';
+                return;
+            }
+            localStorage.setItem('journalConfig', JSON.stringify({owner, repo, token}));
+            loadConfig();
+        });
 
         async function githubApi(method, path, body = null) {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
@@ -333,7 +372,7 @@
                 });
         }
 
-        // Lightbox functions
+        // Lightbox
         function openLightbox(photos, startIndex) {
             currentPhotos = photos;
             currentIndex = startIndex;
@@ -361,7 +400,7 @@
             }
         };
 
-        // Toggle view
+        // Toggle View Button
         document.getElementById('toggleView').addEventListener('click', () => {
             const entriesDiv = document.getElementById('entries');
             const button = document.getElementById('toggleView');
@@ -374,10 +413,10 @@
             }
         });
 
-        // Form logic (same as before)
+        // New Entry Form
         document.getElementById('addEntry').addEventListener('click', () => {
             document.getElementById('form').style.display = 'block';
-            document.getElementById('addEntry').style.display = 'none';
+            document.getElementById('header-controls').style.display = 'none';
             document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
         });
 
@@ -396,7 +435,7 @@
 
         photoInput.addEventListener('change', () => {
             selectedFiles = Array.from(photoInput.files);
-            status.textContent = selectedFiles.length ? 
+            status.textContent = selectedFiles.length ?
                 `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''} selected` : '';
             status.className = 'status success';
             saveBtn.disabled = !selectedFiles.length;
@@ -426,9 +465,9 @@
                 await saveEntries();
                 displayEntries();
 
-                // Reset
+                // Reset form
                 document.getElementById('form').style.display = 'none';
-                document.getElementById('addEntry').style.display = 'block';
+                document.getElementById('header-controls').style.display = 'block';
                 document.getElementById('title').value = '';
                 document.getElementById('eventDate').value = '';
                 photoInput.value = '';
