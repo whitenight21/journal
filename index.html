@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Journal</title>
+    <title>Our Memories</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f5f5f7;
             margin: 0;
-            padding: 20px;
+            padding: 20px 20px 80px 20px; /* Extra bottom padding for floating button */
             color: #333;
         }
         h1 {
             text-align: center;
-            font-size: 32px;
-            margin: 20px 0 15px;
-            font-weight: 600;
+            font-size: 40px;
+            font-weight: 700;
+            margin: 20px 0 20px;
+            letter-spacing: -0.5px;
+            color: #1d1d1f;
         }
         #header-controls {
             text-align: center;
@@ -24,23 +26,28 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
         #top-buttons {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             align-items: center;
         }
-        #addEntry {
-            background-color: #007aff;
-            color: white;
-            border: none;
+        #newEntryBtn {
+            background-color: white;
+            color: #000;
+            border: 2px solid #000;
             border-radius: 14px;
-            padding: 16px 32px;
-            font-size: 19px;
+            padding: 14px 32px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        #newEntryBtn:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
         }
         #calendarBtn {
             background: none;
@@ -49,15 +56,30 @@
             cursor: pointer;
             padding: 8px;
         }
-        #toggleView {
+
+        /* Floating Toggle Button - Always Visible */
+        #toggleViewFloating {
+            position: fixed;
+            top: 20px;
+            right: 20px;
             background-color: #000000;
             color: white;
             border: none;
-            border-radius: 12px;
-            padding: 12px 28px;
-            font-size: 16px;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            font-size: 20px;
             cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        #toggleViewFloating:hover {
+            background-color: #333;
+        }
+
         #searchBar {
             width: 100%;
             max-width: 800px;
@@ -69,9 +91,7 @@
             background-color: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-        #searchBar::placeholder {
-            color: #aaa;
-        }
+        #searchBar::placeholder { color: #aaa; }
 
         /* Calendar Modal */
         #calendarModal {
@@ -104,29 +124,16 @@
             gap: 8px;
             text-align: center;
         }
-        .day-name {
-            font-weight: bold;
-            color: #666;
-            font-size: 14px;
-        }
+        .day-name { font-weight: bold; color: #666; font-size: 14px; }
         .day {
             padding: 10px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 16px;
         }
-        .day.has-entry {
-            background-color: #007aff;
-            color: white;
-            font-weight: bold;
-        }
-        .day.today {
-            border: 2px solid #007aff;
-            box-sizing: border-box;
-        }
-        .day.other-month {
-            color: #ccc;
-        }
+        .day.has-entry { background-color: #007aff; color: white; font-weight: bold; }
+        .day.today { border: 2px solid #007aff; box-sizing: border-box; }
+        .day.other-month { color: #ccc; }
 
         #entries {
             max-width: 800px;
@@ -162,10 +169,15 @@
         .entry-thumb {
             width: 60px;
             height: 60px;
-            border-radius: 10px;
+            border-radius: 12px;
             object-fit: cover;
             flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .entry-thumb:hover {
+            transform: scale(1.08);
         }
         .compact .entry-thumb {
             width: 50px;
@@ -215,12 +227,52 @@
         .entry-gallery img:hover { transform: scale(1.05); }
         .compact .entry-gallery { display: none; }
 
-        /* Lightbox and Form (same as before) */
-        #lightbox { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; z-index: 1000; }
-        #lightbox img { max-width: 95%; max-height: 95%; border-radius: 12px; }
-        #lightbox-nav { position: absolute; top: 50%; width: 100%; display: flex; justify-content: space-between; pointer-events: none; }
-        #prevBtn, #nextBtn { pointer-events: all; background: rgba(255,255,255,0.2); color: white; border: none; font-size: 40px; padding: 20px; cursor: pointer; border-radius: 50%; }
-        #closeLightbox { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; font-size: 30px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; }
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #lightbox img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 12px;
+        }
+        #lightbox-nav {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        #prevBtn, #nextBtn {
+            pointer-events: all;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            font-size: 40px;
+            padding: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #closeLightbox {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            font-size: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
 
         #configForm, #form {
             max-width: 800px;
@@ -265,11 +317,12 @@
 
     <div id="header-controls">
         <div id="top-buttons">
-            <button id="addEntry">+ New Entry</button>
+            <button id="newEntryBtn">New</button>
             <button id="calendarBtn">📅</button>
         </div>
-        <button id="toggleView">Compact View</button>
     </div>
+
+    <button id="toggleViewFloating">◐</button>
 
     <input type="text" id="searchBar" placeholder="Search by title, date, month, or year...">
 
@@ -347,11 +400,12 @@
                 document.getElementById('entries').style.display = 'block';
                 document.getElementById('header-controls').style.display = 'flex';
                 document.getElementById('searchBar').style.display = 'block';
+                document.getElementById('toggleViewFloating').style.display = 'flex';
                 fetchEntries();
             }
         }
 
-        // GitHub functions (same as before)
+        // GitHub API functions (unchanged)
         async function githubApi(method, path, body = null) {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
             const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
@@ -414,7 +468,6 @@
 
             monthYear.textContent = formatMonthYear(currentCalendarDate);
 
-            // Clear previous days
             Array.from(grid.children).slice(7).forEach(el => el.remove());
 
             const entryDates = getEntryDates();
@@ -432,11 +485,11 @@
 
                 dayEl.onclick = () => {
                     if (entryDates.has(dateStr)) {
-                        const targetEntry = document.querySelector(`[data-date="${dateStr}"]`);
-                        if (targetEntry) {
-                            targetEntry.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            targetEntry.style.backgroundColor = '#e6f0ff';
-                            setTimeout(() => targetEntry.style.backgroundColor = '', 1000);
+                        const target = document.querySelector(`[data-date="${dateStr}"]`);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            target.style.backgroundColor = '#e6f0ff';
+                            setTimeout(() => target.style.backgroundColor = '', 1000);
                         }
                     }
                     document.getElementById('calendarModal').style.display = 'none';
@@ -474,7 +527,7 @@
             const groups = filterAndGroupEntries(term);
 
             if (Object.keys(groups).length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:#888; font-size:18px;">No entries found</p>';
+                container.innerHTML = '<p style="text-align:center; color:#888; font-size:18px;">No memories found</p>';
                 return;
             }
 
@@ -490,10 +543,11 @@
                     div.setAttribute('data-date', entry.eventDate.split('T')[0]);
 
                     const firstPhoto = entry.photos.length > 0 ? rawBase(entry.photos[0]) : '';
-                    const thumb = firstPhoto ? `<img class="entry-thumb" src="${firstPhoto}" alt="thumb">` : '';
+                    const thumbHtml = firstPhoto ? 
+                        `<img class="entry-thumb" src="${firstPhoto}" onclick="openLightboxFromThumb('${entry.photos.map(p => rawBase(p)).join("|||")}', 0)">` : '';
 
                     div.innerHTML = `
-                        ${thumb}
+                        ${thumbHtml}
                         <div class="entry-content">
                             <div class="entry-date">${formatEventDate(entry.eventDate)}</div>
                             <div class="entry-title" contenteditable="true">${entry.title || 'Untitled'}</div>
@@ -520,50 +574,53 @@
             });
         }
 
-        // Calendar controls
+        function openLightboxFromThumb(photoUrlsStr, startIdx) {
+            const photoPaths = photoUrlsStr.split('|||');
+            currentPhotos = photoPaths.map(url => url.replace(rawBase(''), ''));
+            currentIndex = startIdx;
+            document.getElementById('lightboxImg').src = photoPaths[startIdx];
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function openLightbox(photos, idx) {
+            currentPhotos = photos;
+            currentIndex = idx;
+            document.getElementById('lightboxImg').src = rawBase(photos[idx]);
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        // Floating Toggle Button
+        document.getElementById('toggleViewFloating').addEventListener('click', () => {
+            const entriesDiv = document.getElementById('entries');
+            if (entriesDiv.classList.contains('compact')) {
+                entriesDiv.classList.remove('compact');
+                document.getElementById('toggleViewFloating').textContent = '◐';
+            } else {
+                entriesDiv.classList.add('compact');
+                document.getElementById('toggleViewFloating').textContent = '≡';
+            }
+        });
+
+        // Calendar
         document.getElementById('calendarBtn').onclick = () => {
             currentCalendarDate = new Date();
             renderCalendar();
             document.getElementById('calendarModal').style.display = 'flex';
         };
 
-        document.getElementById('prevMonth').onclick = () => {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-            renderCalendar();
-        };
-
-        document.getElementById('nextMonth').onclick = () => {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-            renderCalendar();
-        };
-
-        document.getElementById('calendarModal').onclick = (e) => {
-            if (e.target === document.getElementById('calendarModal')) {
-                document.getElementById('calendarModal').style.display = 'none';
-            }
-        };
+        document.getElementById('prevMonth').onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); renderCalendar(); };
+        document.getElementById('nextMonth').onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); renderCalendar(); };
+        document.getElementById('calendarModal').onclick = (e) => { if (e.target === document.getElementById('calendarModal')) document.getElementById('calendarModal').style.display = 'none'; };
 
         // Search
         document.getElementById('searchBar').addEventListener('input', displayEntries);
 
-        // Toggle view
-        document.getElementById('toggleView').addEventListener('click', () => {
-            const entriesDiv = document.getElementById('entries');
-            const btn = document.getElementById('toggleView');
-            if (entriesDiv.classList.contains('compact')) {
-                entriesDiv.classList.remove('compact');
-                btn.textContent = 'Compact View';
-            } else {
-                entriesDiv.classList.add('compact');
-                btn.textContent = 'Gallery View';
-            }
-        });
-
-        // Form and lightbox (same as previous version)
-        document.getElementById('addEntry').addEventListener('click', () => {
+        // New Entry
+        document.getElementById('newEntryBtn').addEventListener('click', () => {
             document.getElementById('form').style.display = 'block';
             document.getElementById('header-controls').style.display = 'none';
             document.getElementById('searchBar').style.display = 'none';
+            document.getElementById('toggleViewFloating').style.display = 'none';
             document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
         });
 
@@ -571,10 +628,10 @@
             document.getElementById('form').style.display = 'none';
             document.getElementById('header-controls').style.display = 'flex';
             document.getElementById('searchBar').style.display = 'block';
+            document.getElementById('toggleViewFloating').style.display = 'flex';
         });
 
-        // ... [rest of form, photo upload, lightbox code remains identical to previous version]
-
+        // Photo upload & save (unchanged logic)
         document.getElementById('todayBtn').onclick = () => document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('photos').onclick = () => document.getElementById('photoInput').click();
 
@@ -593,7 +650,7 @@
         saveBtn.addEventListener('click', async () => {
             if (!selectedFiles.length) return alert('Add at least one photo');
             const eventDate = document.getElementById('eventDate').value;
-            if (!eventDate) return alert('Please select an event date');
+            if (!eventDate) return alert('Please select a date');
 
             status.textContent = 'Uploading...';
             try {
@@ -617,11 +674,12 @@
                 document.getElementById('form').style.display = 'none';
                 document.getElementById('header-controls').style.display = 'flex';
                 document.getElementById('searchBar').style.display = 'block';
+                document.getElementById('toggleViewFloating').style.display = 'flex';
                 document.getElementById('title').value = '';
                 photoInput.value = '';
                 selectedFiles = [];
                 saveBtn.disabled = true;
-                status.textContent = 'Saved!';
+                status.textContent = 'Memory saved!';
                 status.className = 'status success';
             } catch (e) {
                 status.textContent = 'Error: ' + e.message;
@@ -629,16 +687,19 @@
             }
         });
 
-        // Lightbox (unchanged)
-        function openLightbox(photos, idx) {
-            currentPhotos = photos; currentIndex = idx;
-            document.getElementById('lightboxImg').src = rawBase(photos[idx]);
-            document.getElementById('lightbox').style.display = 'flex';
-        }
+        // Lightbox controls
         document.getElementById('closeLightbox').onclick = () => document.getElementById('lightbox').style.display = 'none';
-        document.getElementById('prevBtn').onclick = () => { currentIndex = (currentIndex - 1 + currentPhotos.length) % currentPhotos.length; document.getElementById('lightboxImg').src = rawBase(currentPhotos[currentIndex]); };
-        document.getElementById('nextBtn').onclick = () => { currentIndex = (currentIndex + 1) % currentPhotos.length; document.getElementById('lightboxImg').src = rawBase(currentPhotos[currentIndex]); };
-        document.getElementById('lightbox').onclick = (e) => { if (e.target === document.getElementById('lightbox')) document.getElementById('lightbox').style.display = 'none'; };
+        document.getElementById('prevBtn').onclick = () => {
+            currentIndex = (currentIndex - 1 + currentPhotos.length) % currentPhotos.length;
+            document.getElementById('lightboxImg').src = rawBase(currentPhotos[currentIndex]);
+        };
+        document.getElementById('nextBtn').onclick = () => {
+            currentIndex = (currentIndex + 1) % currentPhotos.length;
+            document.getElementById('lightboxImg').src = rawBase(currentPhotos[currentIndex]);
+        };
+        document.getElementById('lightbox').onclick = (e) => {
+            if (e.target === document.getElementById('lightbox')) document.getElementById('lightbox').style.display = 'none';
+        };
 
         loadConfig();
     </script>
