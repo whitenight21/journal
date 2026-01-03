@@ -9,66 +9,50 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f5f5f7;
             margin: 0;
-            padding: 20px 20px 80px 20px; /* Extra bottom padding for floating button */
+            padding: 20px 20px 80px 20px;
             color: #333;
         }
         h1 {
             text-align: center;
             font-size: 40px;
             font-weight: 700;
-            margin: 20px 0 20px;
+            margin: 20px 0 30px;
             letter-spacing: -0.5px;
             color: #1d1d1f;
         }
         #header-controls {
             text-align: center;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
+            margin-bottom: 30px;
         }
-        #top-buttons {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-        #newEntryBtn {
+        #addNewBtn {
             background-color: white;
             color: #000;
             border: 2px solid #000;
             border-radius: 14px;
-            padding: 14px 32px;
-            font-size: 18px;
+            padding: 16px 40px;
+            font-size: 19px;
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: all 0.2s;
         }
-        #newEntryBtn:hover {
+        #addNewBtn:hover {
             background-color: #f0f0f0;
             transform: translateY(-2px);
         }
-        #calendarBtn {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            padding: 8px;
-        }
 
-        /* Floating Toggle Button - Always Visible */
+        /* Floating View Toggle - Always Visible */
         #toggleViewFloating {
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
             background-color: #000000;
             color: white;
             border: none;
             border-radius: 50%;
             width: 56px;
             height: 56px;
-            font-size: 20px;
+            font-size: 26px;
             cursor: pointer;
             box-shadow: 0 4px 16px rgba(0,0,0,0.2);
             z-index: 1000;
@@ -90,50 +74,9 @@
             border: 1px solid #ddd;
             background-color: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: block;
         }
         #searchBar::placeholder { color: #aaa; }
-
-        /* Calendar Modal */
-        #calendarModal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        #calendarContainer {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            width: 320px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        #calendarHeader {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 20px;
-            font-weight: bold;
-        }
-        #calendarGrid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            text-align: center;
-        }
-        .day-name { font-weight: bold; color: #666; font-size: 14px; }
-        .day {
-            padding: 10px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .day.has-entry { background-color: #007aff; color: white; font-weight: bold; }
-        .day.today { border: 2px solid #007aff; box-sizing: border-box; }
-        .day.other-month { color: #ccc; }
 
         #entries {
             max-width: 800px;
@@ -281,17 +224,6 @@
             border-radius: 16px;
             padding: 24px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-        #cancelBtn {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            background: none;
-            border: none;
-            font-size: 28px;
-            color: #888;
-            cursor: pointer;
         }
         input, button, .date-group {
             width: 100%;
@@ -316,10 +248,7 @@
     <h1>Memories</h1>
 
     <div id="header-controls">
-        <div id="top-buttons">
-            <button id="newEntryBtn">New</button>
-            <button id="calendarBtn">📅</button>
-        </div>
+        <button id="addNewBtn">Add New</button>
     </div>
 
     <button id="toggleViewFloating">🏞️</button>
@@ -338,7 +267,6 @@
     <div id="entries" style="display:none;"></div>
 
     <div id="form" style="display:none;">
-        <button id="cancelBtn">×</button>
         <input id="title" placeholder="Entry title (optional)">
 
         <div class="date-group">
@@ -353,21 +281,6 @@
 
         <div class="status" id="status"></div>
         <button id="save" disabled>Save Entry</button>
-    </div>
-
-    <!-- Calendar Modal -->
-    <div id="calendarModal">
-        <div id="calendarContainer">
-            <div id="calendarHeader">
-                <button id="prevMonth">‹</button>
-                <span id="monthYear"></span>
-                <button id="nextMonth">›</button>
-            </div>
-            <div id="calendarGrid">
-                <div class="day-name">S</div><div class="day-name">M</div><div class="day-name">T</div>
-                <div class="day-name">W</div><div class="day-name">T</div><div class="day-name">F</div><div class="day-name">S</div>
-            </div>
-        </div>
     </div>
 
     <!-- Lightbox -->
@@ -386,7 +299,6 @@
         const dataPath = 'journal.json';
         const photosFolder = 'photos/';
         let currentPhotos = [], currentIndex = 0;
-        let currentCalendarDate = new Date();
 
         function rawBase(path) {
             return `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
@@ -398,14 +310,13 @@
                 ({owner, repo, token} = JSON.parse(cfg));
                 document.getElementById('configForm').style.display = 'none';
                 document.getElementById('entries').style.display = 'block';
-                document.getElementById('header-controls').style.display = 'flex';
+                document.getElementById('header-controls').style.display = 'block';
                 document.getElementById('searchBar').style.display = 'block';
                 document.getElementById('toggleViewFloating').style.display = 'flex';
                 fetchEntries();
             }
         }
 
-        // GitHub API functions (unchanged)
         async function githubApi(method, path, body = null) {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
             const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
@@ -421,11 +332,9 @@
                 entries = JSON.parse(atob(file.content));
                 entries = entries.map(e => ({ ...e, eventDate: e.eventDate || e.date || new Date().toISOString() }));
                 displayEntries();
-                renderCalendar();
             } catch (e) {
                 if (e.message.includes('404')) entries = [];
                 displayEntries();
-                renderCalendar();
             }
         }
 
@@ -448,56 +357,6 @@
 
         function formatEventDate(iso) { return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); }
         function formatMonthYear(date) { return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }); }
-
-        function getEntryDates() {
-            const dates = new Set();
-            entries.forEach(e => {
-                const d = new Date(e.eventDate);
-                dates.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-            });
-            return dates;
-        }
-
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            const monthYear = document.getElementById('monthYear');
-            const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
-            const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-            monthYear.textContent = formatMonthYear(currentCalendarDate);
-
-            Array.from(grid.children).slice(7).forEach(el => el.remove());
-
-            const entryDates = getEntryDates();
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            for (let d = new Date(startDate); d <= lastDay; d.setDate(d.getDate() + 1)) {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'day';
-                dayEl.textContent = d.getDate();
-
-                const dateStr = d.toISOString().split('T')[0];
-                if (entryDates.has(dateStr)) dayEl.classList.add('has-entry');
-                if (dateStr === todayStr) dayEl.classList.add('today');
-                if (d.getMonth() !== currentCalendarDate.getMonth()) dayEl.classList.add('other-month');
-
-                dayEl.onclick = () => {
-                    if (entryDates.has(dateStr)) {
-                        const target = document.querySelector(`[data-date="${dateStr}"]`);
-                        if (target) {
-                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            target.style.backgroundColor = '#e6f0ff';
-                            setTimeout(() => target.style.backgroundColor = '', 1000);
-                        }
-                    }
-                    document.getElementById('calendarModal').style.display = 'none';
-                };
-
-                grid.appendChild(dayEl);
-            }
-        }
 
         function filterAndGroupEntries(term = '') {
             const lower = term.toLowerCase();
@@ -544,7 +403,7 @@
 
                     const firstPhoto = entry.photos.length > 0 ? rawBase(entry.photos[0]) : '';
                     const thumbHtml = firstPhoto ? 
-                        `<img class="entry-thumb" src="${firstPhoto}" onclick="openLightboxFromThumb('${entry.photos.map(p => rawBase(p)).join("|||")}', 0)">` : '';
+                        `<img class="entry-thumb" src="${firstPhoto}" onclick="openLightbox(entry.photos, 0)">` : '';
 
                     div.innerHTML = `
                         ${thumbHtml}
@@ -574,14 +433,6 @@
             });
         }
 
-        function openLightboxFromThumb(photoUrlsStr, startIdx) {
-            const photoPaths = photoUrlsStr.split('|||');
-            currentPhotos = photoPaths.map(url => url.replace(rawBase(''), ''));
-            currentIndex = startIdx;
-            document.getElementById('lightboxImg').src = photoPaths[startIdx];
-            document.getElementById('lightbox').style.display = 'flex';
-        }
-
         function openLightbox(photos, idx) {
             currentPhotos = photos;
             currentIndex = idx;
@@ -589,34 +440,23 @@
             document.getElementById('lightbox').style.display = 'flex';
         }
 
-        // Floating Toggle Button
+        // Floating View Toggle
         document.getElementById('toggleViewFloating').addEventListener('click', () => {
             const entriesDiv = document.getElementById('entries');
             if (entriesDiv.classList.contains('compact')) {
                 entriesDiv.classList.remove('compact');
-                document.getElementById('toggleViewFloating').textContent = '◐';
+                document.getElementById('toggleViewFloating').textContent = '🏞️';
             } else {
                 entriesDiv.classList.add('compact');
                 document.getElementById('toggleViewFloating').textContent = '≡';
             }
         });
 
-        // Calendar
-        document.getElementById('calendarBtn').onclick = () => {
-            currentCalendarDate = new Date();
-            renderCalendar();
-            document.getElementById('calendarModal').style.display = 'flex';
-        };
-
-        document.getElementById('prevMonth').onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); renderCalendar(); };
-        document.getElementById('nextMonth').onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); renderCalendar(); };
-        document.getElementById('calendarModal').onclick = (e) => { if (e.target === document.getElementById('calendarModal')) document.getElementById('calendarModal').style.display = 'none'; };
-
         // Search
         document.getElementById('searchBar').addEventListener('input', displayEntries);
 
-        // New Entry
-        document.getElementById('newEntryBtn').addEventListener('click', () => {
+        // Add New Entry
+        document.getElementById('addNewBtn').addEventListener('click', () => {
             document.getElementById('form').style.display = 'block';
             document.getElementById('header-controls').style.display = 'none';
             document.getElementById('searchBar').style.display = 'none';
@@ -624,14 +464,7 @@
             document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
         });
 
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            document.getElementById('form').style.display = 'none';
-            document.getElementById('header-controls').style.display = 'flex';
-            document.getElementById('searchBar').style.display = 'block';
-            document.getElementById('toggleViewFloating').style.display = 'flex';
-        });
-
-        // Photo upload & save (unchanged logic)
+        // Form controls
         document.getElementById('todayBtn').onclick = () => document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('photos').onclick = () => document.getElementById('photoInput').click();
 
@@ -669,10 +502,9 @@
 
                 await saveEntries();
                 displayEntries();
-                renderCalendar();
 
                 document.getElementById('form').style.display = 'none';
-                document.getElementById('header-controls').style.display = 'flex';
+                document.getElementById('header-controls').style.display = 'block';
                 document.getElementById('searchBar').style.display = 'block';
                 document.getElementById('toggleViewFloating').style.display = 'flex';
                 document.getElementById('title').value = '';
@@ -687,7 +519,7 @@
             }
         });
 
-        // Lightbox controls
+        // Lightbox
         document.getElementById('closeLightbox').onclick = () => document.getElementById('lightbox').style.display = 'none';
         document.getElementById('prevBtn').onclick = () => {
             currentIndex = (currentIndex - 1 + currentPhotos.length) % currentPhotos.length;
