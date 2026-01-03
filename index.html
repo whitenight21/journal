@@ -41,7 +41,18 @@
             transform: translateY(-2px);
         }
 
-        /* Floating View Toggle - Always Visible */
+        /* New Entry Form - Appears inline below the button */
+        #newEntryForm {
+            display: none;
+            max-width: 800px;
+            margin: 30px auto 40px;
+            background-color: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Floating View Toggle */
         #toggleViewFloating {
             position: fixed;
             top: 20px;
@@ -217,7 +228,7 @@
             cursor: pointer;
         }
 
-        #configForm, #form {
+        #configForm {
             max-width: 800px;
             margin: 20px auto;
             background-color: white;
@@ -251,22 +262,8 @@
         <button id="addNewBtn">Add New</button>
     </div>
 
-    <button id="toggleViewFloating">🏞️</button>
-
-    <input type="text" id="searchBar" placeholder="Search by title, date, month, or year...">
-
-    <div id="configForm">
-        <h2>GitHub Setup (one-time)</h2>
-        <input id="owner" placeholder="GitHub username">
-        <input id="repo" placeholder="Repository name">
-        <input id="token" placeholder="Personal Access Token (repo scope)" type="password">
-        <button id="saveConfig">Save Config & Load Journal</button>
-        <div class="status" id="configStatus"></div>
-    </div>
-
-    <div id="entries" style="display:none;"></div>
-
-    <div id="form" style="display:none;">
+    <!-- New Entry Form - Inline below the button -->
+    <div id="newEntryForm">
         <input id="title" placeholder="Entry title (optional)">
 
         <div class="date-group">
@@ -282,6 +279,21 @@
         <div class="status" id="status"></div>
         <button id="save" disabled>Save Entry</button>
     </div>
+
+    <button id="toggleViewFloating">🏞️</button>
+
+    <input type="text" id="searchBar" placeholder="Search by title, date, month, or year...">
+
+    <div id="configForm">
+        <h2>GitHub Setup (one-time)</h2>
+        <input id="owner" placeholder="GitHub username">
+        <input id="repo" placeholder="Repository name">
+        <input id="token" placeholder="Personal Access Token (repo scope)" type="password">
+        <button id="saveConfig">Save Config & Load Journal</button>
+        <div class="status" id="configStatus"></div>
+    </div>
+
+    <div id="entries" style="display:none;"></div>
 
     <!-- Lightbox -->
     <div id="lightbox">
@@ -310,7 +322,6 @@
                 ({owner, repo, token} = JSON.parse(cfg));
                 document.getElementById('configForm').style.display = 'none';
                 document.getElementById('entries').style.display = 'block';
-                document.getElementById('header-controls').style.display = 'block';
                 document.getElementById('searchBar').style.display = 'block';
                 document.getElementById('toggleViewFloating').style.display = 'flex';
                 fetchEntries();
@@ -455,13 +466,13 @@
         // Search
         document.getElementById('searchBar').addEventListener('input', displayEntries);
 
-        // Add New Entry
+        // Add New Entry - Show form inline
         document.getElementById('addNewBtn').addEventListener('click', () => {
-            document.getElementById('form').style.display = 'block';
-            document.getElementById('header-controls').style.display = 'none';
+            document.getElementById('newEntryForm').style.display = 'block';
+            document.getElementById('addNewBtn').style.display = 'none';
             document.getElementById('searchBar').style.display = 'none';
-            document.getElementById('toggleViewFloating').style.display = 'none';
             document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('title').focus();
         });
 
         // Form controls
@@ -503,10 +514,10 @@
                 await saveEntries();
                 displayEntries();
 
-                document.getElementById('form').style.display = 'none';
-                document.getElementById('header-controls').style.display = 'block';
+                // Reset form and UI
+                document.getElementById('newEntryForm').style.display = 'none';
+                document.getElementById('addNewBtn').style.display = 'block';
                 document.getElementById('searchBar').style.display = 'block';
-                document.getElementById('toggleViewFloating').style.display = 'flex';
                 document.getElementById('title').value = '';
                 photoInput.value = '';
                 selectedFiles = [];
